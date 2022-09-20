@@ -9,33 +9,6 @@ type PLCStatistics struct {
 	Version uint8
 }
 
-func (self *PlcConnection) GetPLCStatistics() (*PLCStatistics, error) {
-	err := self.sendFrame(0x0300, []byte{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = self.recvFrame(0x0300)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return nil, nil
-}
-
-// Get Task Statistics
-
-func (self *PlcConnection) GetTaskStatistics(taskId uint8) error {
-	self.sendFrame(0x0301, []byte{byte(taskId)})
-
-	// TODO: Parse response
-
-	return nil
-}
-
-// Get Channel Statistics
 type Endpoint struct {
 	AvarageCycleTime uint32
 	MaximalCycleTime uint32
@@ -52,7 +25,34 @@ type ChannelStatistics struct {
 	Endpoints    []Endpoint
 }
 
-func (self *PlcConnection) GetChannelStatistics(channelName string) (*ChannelStatistics, error) {
+// This functionality defined on the section 5.7.1 of the specification
+func (self *PLCConnection) GetPLCStatistics() (*PLCStatistics, error) {
+	err := self.sendFrame(0x0300, []byte{})
+
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = self.recvFrame(0x0300)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
+}
+
+// This functionality defined on the section 5.7.2 of the specification
+func (self *PLCConnection) GetTaskStatistics(taskId uint8) error {
+	self.sendFrame(0x0301, []byte{byte(taskId)})
+
+	// TODO: Parse response
+
+	return nil
+}
+
+// This functionality defined on the section 5.7.3 of the specification
+func (self *PLCConnection) GetChannelStatistics(channelName string) (*ChannelStatistics, error) {
 	hash := fnv.New32()
 	hash.Write([]byte(channelName))
 

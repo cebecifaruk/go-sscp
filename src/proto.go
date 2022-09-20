@@ -6,7 +6,7 @@ import (
 )
 
 // Error Code Table
-var errorCodeTable map[uint16]string = map[uint16]string{
+var errorCodeTable map[uint32]string = map[uint32]string{
 	0x0000: "No Error",
 	0x0001: "No Response",
 	0x0002: "Failed To Connect",
@@ -56,7 +56,7 @@ var errorCodeTable map[uint16]string = map[uint16]string{
 	0x080B: "Already Stopped",
 }
 
-func (self *PlcConnection) recv(n uint) ([]byte, error) {
+func (self *PLCConnection) recv(n uint) ([]byte, error) {
 	result := make([]byte, n)
 	remaining := n
 	for remaining > 0 {
@@ -75,7 +75,7 @@ func (self *PlcConnection) recv(n uint) ([]byte, error) {
 	return result, nil
 }
 
-func (self *PlcConnection) send(data []byte) error {
+func (self *PLCConnection) send(data []byte) error {
 	remaining := len(data)
 	for remaining > 0 {
 		n, err := self.conn.Write(data[len(data)-remaining:])
@@ -87,7 +87,7 @@ func (self *PlcConnection) send(data []byte) error {
 	return nil
 }
 
-func (self *PlcConnection) sendFrame(functionId uint16, payload []byte) error {
+func (self *PLCConnection) sendFrame(functionId uint16, payload []byte) error {
 	functionId = 0x3FFF & functionId
 	payloadLen := len(payload)
 
@@ -110,7 +110,7 @@ func (self *PlcConnection) sendFrame(functionId uint16, payload []byte) error {
 	return nil
 }
 
-func (self *PlcConnection) recvFrame(functionId uint16) ([]byte, error) {
+func (self *PLCConnection) recvFrame(functionId uint16) ([]byte, error) {
 	functionId = 0x3FFF & functionId
 
 	// Read header
@@ -156,7 +156,7 @@ func (self *PlcConnection) recvFrame(functionId uint16) ([]byte, error) {
 	// Check is an error response
 
 	if (buf[1] & 0x40) > 0 {
-		errCode := binary.BigEndian.Uint16(payload[0:2])
+		errCode := binary.BigEndian.Uint32(payload[0:4])
 
 		errString, ok := errorCodeTable[errCode]
 

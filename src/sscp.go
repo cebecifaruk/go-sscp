@@ -17,20 +17,27 @@ import (
 	"net"
 )
 
-type PlcConnection struct {
+type PLCConnection struct {
 	conn      net.Conn
 	addr      uint8
 	reconnect bool
 }
 
-func NewPlcConnecetion(host string, addr uint8, reconnect bool) (*PlcConnection, error) {
+type Variable struct {
+	Uid    uint32
+	Offset uint32
+	Length uint32
+	Value  []byte
+}
+
+func NewPlcConnecetion(host string, addr uint8, reconnect bool) (*PLCConnection, error) {
 	conn, err := net.Dial("tcp", host)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return &PlcConnection{
+	return &PLCConnection{
 		conn:      conn,
 		addr:      addr,
 		reconnect: reconnect,
