@@ -21,7 +21,7 @@ func TestLogin(t *testing.T) {
 
 	testSession := mockconn.NewTestConn(t, req, res, mockconn.ExpectClose())
 
-	conn := sscp.NewPLCConnecetionFromConnection(testSession, 1, false)
+	conn := sscp.NewPLCConnectionFrom(testSession, 1, false)
 
 	result, err := conn.Login("admin", "rw", "", 10240)
 
