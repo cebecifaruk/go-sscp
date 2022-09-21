@@ -69,7 +69,7 @@ func (self *TestConn) Write(b []byte) (n int, err error) {
 
 	if bytes.Compare(op.Payload, b) != 0 {
 		self.t.Fatalf(
-			"Expected payload is \n% x \nbut found \n% x",
+			"Expected send payload is \n% x \nbut found \n% x",
 			op.Payload,
 			b,
 		)
