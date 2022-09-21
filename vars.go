@@ -69,6 +69,13 @@ func (self *PLCConnection) WriteVariablesDirectly(vars []*Variable) error {
 		binary.BigEndian.PutUint32(frame[8:12], v.Length)
 	}
 
+	offset := 2 + 12*numOfVars
+
+	for _, v := range vars {
+		copy(req[offset:offset+v.Length], v.Value)
+		offset += v.Length
+	}
+
 	_, err := self.makeRequest(0x0510, req)
 
 	if err != nil {
