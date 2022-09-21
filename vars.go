@@ -5,6 +5,13 @@ import (
 	"fmt"
 )
 
+type Variable struct {
+	Uid    uint32
+	Offset uint32
+	Length uint32
+	Value  []byte
+}
+
 // This functionality defined on the section 5.8.1.1 of the specification
 // It simply takes a list of variables and mutates their values.
 func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable) error {
@@ -16,9 +23,9 @@ func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable) error {
 	payload[0] = 0x80
 
 	for i, v := range vars {
-		binary.BigEndian.PutUint32(payload[1+3*i:], v.Uid)
-		binary.BigEndian.PutUint32(payload[5+3*i:], v.Offset)
-		binary.BigEndian.PutUint32(payload[9+3*i:], v.Length)
+		binary.BigEndian.PutUint32(payload[1+12*i:], v.Uid)
+		binary.BigEndian.PutUint32(payload[5+12*i:], v.Offset)
+		binary.BigEndian.PutUint32(payload[9+12*i:], v.Length)
 	}
 
 	res, err := self.makeRequest(0x0500, payload)

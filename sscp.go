@@ -30,13 +30,6 @@ type PLCConnection struct {
 	addr uint8
 }
 
-type Variable struct {
-	Uid    uint32
-	Offset uint32
-	Length uint32
-	Value  []byte
-}
-
 func NewPLCConnection(host string, addr uint8, reconnect bool) (*PLCConnection, error) {
 	conn, err := net.Dial("tcp", host)
 
