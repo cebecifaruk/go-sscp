@@ -31,7 +31,7 @@ func (self *PLCConnection) InitiateDataSend(filename string, size uint32, time t
 	}
 
 	req := make([]byte, 13+len(encodedFilename))
-	self.sendFrame(0x0200, req)
+	self.makeRequest(0x0200, req)
 	return fmt.Errorf("Not implemented yet.")
 }
 
@@ -44,15 +44,9 @@ func (self *PLCConnection) SendDataChunk(offset uint32, data []byte) error {
 func (self *PLCConnection) FinishDataSend(crc uint16) error {
 	req := make([]byte, 2)
 	binary.BigEndian.PutUint16(req, crc)
-	err := self.sendFrame(0x0202, req)
-
-	if err != nil {
-		return err
-	}
-
-	_, err = self.recvFrame(0x0202)
 
 	// Response frame does not contain any important data.
+	_, err := self.makeRequest(0x0202, req)
 
 	return err
 }
@@ -70,13 +64,11 @@ func (self *PLCConnection) InitiateDataReceive(filename string) (*FileInfo, erro
 
 	copy(req[1:], encodedFilename)
 
-	err := self.sendFrame(0x0210, req)
+	res, err := self.makeRequest(0x0210, req)
 
 	if err != nil {
 		return nil, err
 	}
-
-	res, err := self.recvFrame(0x0210)
 
 	return &FileInfo{
 		Size: binary.BigEndian.Uint32(res[0:4]),
@@ -89,13 +81,7 @@ func (self *PLCConnection) InitiateDataReceive(filename string) (*FileInfo, erro
 func (self *PLCConnection) ReceiveDataChunk(offset uint32) (uint32, []byte, error) {
 	req := make([]byte, 4)
 	binary.BigEndian.PutUint32(req, offset)
-	err := self.sendFrame(0x0211, req)
-
-	if err != nil {
-		return 0, nil, err
-	}
-
-	res, err := self.recvFrame(0x0211)
+	res, err := self.makeRequest(0x0211, req)
 
 	if err != nil {
 		return 0, nil, err

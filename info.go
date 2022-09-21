@@ -100,13 +100,7 @@ func (self *PLCConnection) GetBasicInfo(serialnumber string, username string, pa
 
 	}
 
-	err := self.sendFrame(0x0000, req)
-
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := self.recvFrame(0x0000)
+	res, err := self.makeRequest(0x0000, req)
 
 	if err != nil {
 		return nil, err

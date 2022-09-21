@@ -25,21 +25,14 @@ func fromDateTime(t uint64) time.Time {
 
 // This functionality defined on the section 5.9.1 of the specification
 func (self *PLCConnection) TimeSetup(t *time.Time) (*time.Time, error) {
+	req := []byte{}
+
 	if t != nil {
-		req := make([]byte, 4)
+		req = make([]byte, 4)
 		binary.BigEndian.PutUint64(req, toDateTime(*t))
-		err := self.sendFrame(0x0602, req)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		err := self.sendFrame(0x0602, []byte{})
-		if err != nil {
-			return nil, err
-		}
 	}
 
-	res, err := self.recvFrame(0x0602)
+	res, err := self.makeRequest(0x0602, req)
 
 	if err != nil {
 		return nil, err

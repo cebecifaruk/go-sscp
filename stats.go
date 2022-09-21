@@ -27,13 +27,7 @@ type ChannelStatistics struct {
 
 // This functionality defined on the section 5.7.1 of the specification
 func (self *PLCConnection) GetPLCStatistics() (*PLCStatistics, error) {
-	err := self.sendFrame(0x0300, []byte{})
-
-	if err != nil {
-		return nil, err
-	}
-
-	_, err = self.recvFrame(0x0300)
+	_, err := self.makeRequest(0x0300, []byte{})
 
 	if err != nil {
 		return nil, err
@@ -44,11 +38,11 @@ func (self *PLCConnection) GetPLCStatistics() (*PLCStatistics, error) {
 
 // This functionality defined on the section 5.7.2 of the specification
 func (self *PLCConnection) GetTaskStatistics(taskId uint8) error {
-	self.sendFrame(0x0301, []byte{byte(taskId)})
+	_, err := self.makeRequest(0x0301, []byte{byte(taskId)})
 
 	// TODO: Parse response
 
-	return nil
+	return err
 }
 
 // This functionality defined on the section 5.7.3 of the specification
@@ -56,13 +50,7 @@ func (self *PLCConnection) GetChannelStatistics(channelName string) (*ChannelSta
 	hash := fnv.New32()
 	hash.Write([]byte(channelName))
 
-	err := self.sendFrame(0x0310, hash.Sum(nil))
-
-	if err != nil {
-		return nil, err
-	}
-
-	res, err := self.recvFrame(0x0310)
+	res, err := self.makeRequest(0x0310, hash.Sum(nil))
 
 	if err != nil {
 		return nil, err

@@ -20,7 +20,6 @@ type LoginResponse struct {
 
 // This functionality defined on the section 5.5.4 of the specification
 func (self *PLCConnection) Login(username string, password string, proxyId string, maxDataSize uint16) (*LoginResponse, error) {
-	const funcCode = 0x0100
 
 	// Get username as byte buffer
 	_username := []byte(username)
@@ -59,11 +58,9 @@ func (self *PLCConnection) Login(username string, password string, proxyId strin
 		copy(payload[6+_username_len+_password_len:], _proxyId)
 	}
 
-	self.sendFrame(funcCode, payload)
-
 	// Recieve Response
 
-	res, err := self.recvFrame(funcCode)
+	res, err := self.makeRequest(0x0100, payload)
 
 	if err != nil {
 		return nil, err
@@ -79,7 +76,7 @@ func (self *PLCConnection) Login(username string, password string, proxyId strin
 
 // This functionality defined on the section 5.5.5 of the specification
 func (self *PLCConnection) Logout() error {
-	self.sendFrame(0x0101, []byte{})
+	_, err := self.makeRequest(0x0101, []byte{})
 
-	return nil
+	return err
 }
