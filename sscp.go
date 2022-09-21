@@ -37,7 +37,7 @@ type Variable struct {
 	Value  []byte
 }
 
-func NewPLCConnecetion(host string, addr uint8, reconnect bool) (*PLCConnection, error) {
+func NewPLCConnection(host string, addr uint8, reconnect bool) (*PLCConnection, error) {
 	conn, err := net.Dial("tcp", host)
 
 	if err != nil {
@@ -50,7 +50,7 @@ func NewPLCConnecetion(host string, addr uint8, reconnect bool) (*PLCConnection,
 	}, nil
 }
 
-func NewPLCConnecetionFromConnection(conn net.Conn, addr uint8, reconnect bool) PLCConnection {
+func NewPLCConnectionFrom(conn net.Conn, addr uint8, reconnect bool) PLCConnection {
 	return PLCConnection{
 		conn: conn,
 		addr: addr,
