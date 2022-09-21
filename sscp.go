@@ -109,6 +109,25 @@ var errorCodeTable map[uint32]string = map[uint32]string{
 }
 
 func (self *PLCConnection) sendFrame(frame Frame) error {
+
+	// Exception for GetBasicInfo
+	if frame.FunctionId == 0x0000 {
+		packet := make([]byte, 4+len(frame.Payload))
+
+		binary.BigEndian.PutUint16(packet[0:], 0x3FFF&frame.FunctionId)
+		binary.BigEndian.PutUint16(packet[2:], uint16(len(frame.Payload)))
+
+		copy(packet[4:], frame.Payload)
+
+		err := self.send(packet)
+
+		if err != nil {
+			return err
+		}
+
+		return nil
+	}
+
 	packet := make([]byte, 5+len(frame.Payload))
 
 	packet[0] = byte(frame.Addr)
@@ -118,15 +137,10 @@ func (self *PLCConnection) sendFrame(frame Frame) error {
 
 	copy(packet[5:], frame.Payload)
 
-	// Send all packet over the connection
-	remaining := len(packet)
+	err := self.send(packet)
 
-	for remaining > 0 {
-		n, err := self.conn.Write(packet[len(packet)-remaining:])
-		if err != nil {
-			return err
-		}
-		remaining = remaining - n
+	if err != nil {
+		return err
 	}
 
 	return nil
@@ -172,6 +186,21 @@ func (self *PLCConnection) recv(n uint) ([]byte, error) {
 
 	}
 	return result, nil
+}
+
+// Send all packet over the connection
+func (self *PLCConnection) send(packet []byte) error {
+	remaining := len(packet)
+
+	for remaining > 0 {
+		n, err := self.conn.Write(packet[len(packet)-remaining:])
+		if err != nil {
+			return err
+		}
+		remaining = remaining - n
+	}
+
+	return nil
 }
 
 func (self *PLCConnection) makeRequest(functionId uint16, reqPayload []byte) ([]byte, error) {
