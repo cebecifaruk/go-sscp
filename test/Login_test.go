@@ -19,7 +19,7 @@ func TestLogin(t *testing.T) {
 		0x03, 0x58, 0x45, 0x44, 0xF8, 0x3F,
 	})
 
-	testSession := mockconn.NewTestConn(t, req, res, mockconn.ExpectClose())
+	testSession := mockconn.NewTestConn(t, req, res)
 
 	conn := sscp.NewPLCConnectionFrom(testSession, 1, false)
 
