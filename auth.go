@@ -37,8 +37,7 @@ func (self *PLCConnection) Login(username string, password string, proxyId strin
 	payload := make([]byte, 6+_username_len+_password_len+_proxyId_len)
 
 	payload[0] = 0x07
-	payload[1] = byte((maxDataSize | 0xFF00) >> 8)
-	payload[2] = byte((maxDataSize | 0x00FF) >> 0)
+	binary.BigEndian.PutUint16(payload[1:], maxDataSize)
 
 	// Username
 	payload[3] = byte(_username_len)

@@ -3,6 +3,7 @@ package sscp
 import (
 	"encoding/binary"
 	"fmt"
+	"net"
 )
 
 // This file contains SSCP driver for golang.
@@ -24,13 +25,8 @@ type Frame struct {
 	Payload    []byte
 }
 
-type Channel interface {
-	recvFrame() (*Frame, error)
-	sendFrame(Frame) error
-}
-
 type PLCConnection struct {
-	ch   Channel
+	conn net.Conn
 	addr uint8
 }
 
@@ -42,21 +38,21 @@ type Variable struct {
 }
 
 func NewPLCConnecetion(host string, addr uint8, reconnect bool) (*PLCConnection, error) {
-	ch, err := NewTCPChannel(host)
+	conn, err := net.Dial("tcp", host)
 
 	if err != nil {
 		return nil, err
 	}
 
 	return &PLCConnection{
-		ch:   ch,
+		conn: conn,
 		addr: addr,
 	}, nil
 }
 
-func NewPLCConnecetionFromChannel(ch Channel, addr uint8, reconnect bool) PLCConnection {
+func NewPLCConnecetionFromConnection(conn net.Conn, addr uint8, reconnect bool) PLCConnection {
 	return PLCConnection{
-		ch:   ch,
+		conn: conn,
 		addr: addr,
 	}
 }
@@ -112,6 +108,72 @@ var errorCodeTable map[uint32]string = map[uint32]string{
 	0x080B: "Already Stopped",
 }
 
+func (self *PLCConnection) sendFrame(frame Frame) error {
+	packet := make([]byte, 5+len(frame.Payload))
+
+	packet[0] = byte(frame.Addr)
+
+	binary.BigEndian.PutUint16(packet[1:], 0x3FFF&frame.FunctionId)
+	binary.BigEndian.PutUint16(packet[3:], uint16(len(frame.Payload)))
+
+	copy(packet[5:], frame.Payload)
+
+	// Send all packet over the connection
+	remaining := len(packet)
+
+	for remaining > 0 {
+		n, err := self.conn.Write(packet[len(packet)-remaining:])
+		if err != nil {
+			return err
+		}
+		remaining = remaining - n
+	}
+
+	return nil
+}
+
+func (self *PLCConnection) recvFrame() (*Frame, error) {
+	frame := Frame{}
+
+	// Read header
+	buf, err := self.recv(5)
+
+	if err != nil {
+		return nil, err
+	}
+
+	frame.Addr = buf[0]
+	frame.FunctionId = binary.BigEndian.Uint16(buf[1:])
+
+	// Read Payload
+	frame.Payload, err = self.recv(uint(binary.BigEndian.Uint16(buf[3:])))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &frame, nil
+}
+
+func (self *PLCConnection) recv(n uint) ([]byte, error) {
+	result := make([]byte, n)
+	remaining := n
+	for remaining > 0 {
+		buf := make([]byte, remaining)
+
+		read, err := self.conn.Read(buf)
+
+		if err != nil {
+			return nil, err
+		}
+
+		copy(result[n-remaining:], buf[0:read])
+		remaining = remaining - uint(read)
+
+	}
+	return result, nil
+}
+
 func (self *PLCConnection) makeRequest(functionId uint16, reqPayload []byte) ([]byte, error) {
 	reqFrame := Frame{
 		Addr:       self.addr,
@@ -119,13 +181,13 @@ func (self *PLCConnection) makeRequest(functionId uint16, reqPayload []byte) ([]
 		Payload:    reqPayload,
 	}
 
-	err := self.ch.sendFrame(reqFrame)
+	err := self.sendFrame(reqFrame)
 
 	if err != nil {
 		return nil, err
 	}
 
-	resFrame, err := self.ch.recvFrame()
+	resFrame, err := self.recvFrame()
 
 	// Check address
 
