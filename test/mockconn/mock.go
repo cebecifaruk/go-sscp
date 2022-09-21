@@ -2,7 +2,6 @@ package mockconn
 
 import (
 	"bytes"
-	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -55,8 +54,6 @@ func (self *TestConn) Write(b []byte) (n int, err error) {
 	}
 	op := self.ops[self.i]
 	self.i += 1
-
-	fmt.Println(op.IsSend())
 
 	if !op.IsSend() {
 		self.t.Fatalf(
