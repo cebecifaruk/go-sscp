@@ -187,6 +187,10 @@ func (self *PLCConnection) makeRequest(functionId uint16, reqPayload []byte) ([]
 		return nil, err
 	}
 
+	if functionId == 0x0101 {
+		return nil, nil
+	}
+
 	resFrame, err := self.recvFrame()
 
 	// Check address
