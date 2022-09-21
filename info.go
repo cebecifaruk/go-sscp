@@ -36,6 +36,7 @@ var platforms map[uint32]string = map[uint32]string{
 	0x0003000D: "icio205",
 }
 
+// This type represents PLC Information
 type PLCInfo struct {
 	SerialNumber   []byte
 	Endianness     byte
@@ -84,7 +85,8 @@ func (self *PLCInfo) parseInfoTags(buffer []byte) error {
 	return nil
 }
 
-// This functionality defined on the section 5.4.1 of the specification
+// This function simply gets basic information of the PLC.
+// (This functionality defined on the section 5.4.1 of the specification)
 func (self *PLCConnection) GetBasicInfo(serialnumber string, username string, password string) (*PLCInfo, error) {
 	_sn := []byte(serialnumber)
 	_username := []byte(username)

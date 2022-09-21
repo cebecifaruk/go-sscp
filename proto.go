@@ -155,17 +155,34 @@ func (self *PLCConnection) recvFrame(functionId uint16) ([]byte, error) {
 
 	// Check is an error response
 
-	if (buf[1] & 0x40) > 0 {
+	if (buf[1] & 0xC0) == 0xC0 {
 		errCode := binary.BigEndian.Uint32(payload[0:4])
 
 		errString, ok := errorCodeTable[errCode]
 
 		if ok {
 			return payload, fmt.Errorf(errString)
+			// TODO: Optional data for 0x0108, 0x0103, 0x010A, 0x0112, 0x0115, 0x0113
 		}
 
 		return payload, fmt.Errorf("Error response")
 	}
 
 	return payload, nil
+}
+
+func (self *PLCConnection) makeRequest(functionId uint16, req []byte) ([]byte, error) {
+	err := self.sendFrame(functionId, req)
+
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := self.recvFrame(functionId)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
 }

@@ -6,6 +6,7 @@ import (
 )
 
 // This functionality defined on the section 5.8.1.1 of the specification
+// It simply takes a list of variables and mutates their values.
 func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable) error {
 	if len(vars) > 64 {
 		return fmt.Errorf("Too many variables")
@@ -20,13 +21,7 @@ func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable) error {
 		binary.BigEndian.PutUint32(payload[9+3*i:], v.Length)
 	}
 
-	err := self.sendFrame(0x0500, payload)
-
-	if err != nil {
-		return err
-	}
-
-	res, err := self.recvFrame(0x0500)
+	res, err := self.makeRequest(0x0500, payload)
 
 	if err != nil {
 		return err
@@ -43,4 +38,35 @@ func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable) error {
 }
 
 // This functionality defined on the section 5.8.1.2 of the specification
-func (self *PLCConnection) WriteVariableDirectly() {}
+func (self *PLCConnection) WriteVariablesDirectly(vars []*Variable) error {
+	numOfVars := uint32(len(vars))
+	totalRawLength := uint32(0)
+
+	if numOfVars > 255 {
+		return fmt.Errorf("Too many variables")
+	}
+
+	for _, v := range vars {
+		totalRawLength += v.Length
+	}
+
+	req := make([]byte, 2+12*numOfVars+totalRawLength)
+
+	req[0] = 0x80
+	req[1] = byte(numOfVars)
+
+	for i, v := range vars {
+		frame := req[2+12*i : 2+12*i+12]
+		binary.BigEndian.PutUint32(frame[0:4], v.Uid)
+		binary.BigEndian.PutUint32(frame[4:8], v.Offset)
+		binary.BigEndian.PutUint32(frame[8:12], v.Length)
+	}
+
+	_, err := self.makeRequest(0x0510, req)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
