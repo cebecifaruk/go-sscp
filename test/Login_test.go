@@ -1,6 +1,7 @@
 package test
 
 import (
+	"bytes"
 	"sscp"
 	"sscp/test/mockconn"
 	"testing"
@@ -38,6 +39,11 @@ func TestLogin(t *testing.T) {
 
 	if result.RightGroup != 0xFF {
 		t.Fatalf("Invalid Right Group: Expected 0xFF found 0x% X", result.RightGroup)
+	}
+
+	guid := []byte{0xF0, 0x2A, 0x9D, 0x0B, 0x2A, 0x37, 0x75, 0x44, 0xB6, 0xAF, 0x28, 0x21, 0x05, 0xA2, 0xCA, 0x00}
+	if bytes.Compare(result.ImageGUID[:], guid) != 0 {
+		t.Fatalf("Invalid Image GUID: Expected % x found % x", guid, result.ImageGUID)
 	}
 
 	// TODO: Check image build id and image guid

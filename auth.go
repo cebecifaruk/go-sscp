@@ -9,7 +9,7 @@ type LoginResponse struct {
 	ProtoVersion uint8
 	MaxDataSize  uint16
 	RightGroup   uint8
-	ImageGUID    uint32
+	ImageGUID    [16]byte
 
 	// Optional Fields
 	DeviceName  *string
@@ -65,12 +65,15 @@ func (self *PLCConnection) Login(username string, password string, proxyId strin
 		return nil, err
 	}
 
-	return &LoginResponse{
+	result := LoginResponse{
 		ProtoVersion: res[0],
 		MaxDataSize:  binary.BigEndian.Uint16(res[1:3]),
 		RightGroup:   res[3],
-		ImageGUID:    binary.BigEndian.Uint32(res[4:8]),
-	}, nil
+	}
+
+	copy(result.ImageGUID[:], res[4:20])
+
+	return &result, nil
 }
 
 // This functionality defined on the section 5.5.5 of the specification
