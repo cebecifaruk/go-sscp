@@ -46,6 +46,6 @@ func TestLogin(t *testing.T) {
 		t.Fatalf("Invalid Image GUID: Expected % x found % x", guid, result.ImageGUID)
 	}
 
-	// TODO: Check image build id and image guid
+	// TODO: Check optionals
 
 }
