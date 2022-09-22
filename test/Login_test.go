@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"testing"
 
-	"github.com/cebecifaruk/sscp"
-	"github.com/cebecifaruk/sscp/test/mockconn"
+	"github.com/cebecifaruk/go-sscp"
+	"github.com/cebecifaruk/go-sscp/test/mockconn"
 )
 
 func TestLogin(t *testing.T) {

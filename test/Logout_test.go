@@ -3,8 +3,8 @@ package test
 import (
 	"testing"
 
-	"github.com/cebecifaruk/sscp"
-	"github.com/cebecifaruk/sscp/test/mockconn"
+	"github.com/cebecifaruk/go-sscp"
+	"github.com/cebecifaruk/go-sscp/test/mockconn"
 )
 
 func TestLogout(t *testing.T) {
