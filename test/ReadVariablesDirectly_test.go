@@ -2,9 +2,10 @@ package test
 
 import (
 	"bytes"
-	"sscp"
-	"sscp/test/mockconn"
 	"testing"
+
+	"github.com/cebecifaruk/sscp"
+	"github.com/cebecifaruk/sscp/test/mockconn"
 )
 
 func TestReadVariablesInDirectMode(t *testing.T) {
