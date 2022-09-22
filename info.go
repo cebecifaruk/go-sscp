@@ -92,13 +92,51 @@ func (self *PLCConnection) GetBasicInfo(serialnumber string, username string, pa
 	_username := []byte(username)
 	_password := []byte(password)
 
-	req := make([]byte, 8+len(_username)+len(_sn)+len(_password))
+	len_sn := byte(len(_sn))
+	len_username := byte(len(_username))
+	len_password := byte(len(_password))
+
+	if len_sn > 255 {
+		return nil, fmt.Errorf("Too long serialnumber")
+	}
+
+	if len_username > 255 {
+		return nil, fmt.Errorf("Too long username")
+	}
+
+	if len_password > 255 {
+		return nil, fmt.Errorf("Too long password")
+	}
+
+	req := make([]byte, 8+len_username+len_password+len_sn)
 
 	req[0] = 1
-	req[1] = byte(len(_sn))
-	if len(_sn) > 0 {
 
+	// Serial Number
+
+	req[1] = len_sn
+	if len(_sn) > 0 {
+		copy(req[2:], _sn)
 	}
+
+	// Username
+
+	req[3+len_sn] = len_username
+	if len(_sn) > 0 {
+		copy(req[4+len_sn:], _username)
+	}
+
+	// Password
+
+	req[5+len_sn+len_username] = len_password
+	if len(_sn) > 0 {
+		copy(req[6+len_sn+len_username:], _password)
+	}
+
+	// req[7+len_sn+len_username+len_password] = 0x00
+	// req[8+len_sn+len_username+len_password] = 0x00
+	// req[9+len_sn+len_username+len_password] = 0x00
+	// req[10+len_sn+len_username+len_password] = 0x00
 
 	res, err := self.makeRequest(0x0000, req)
 

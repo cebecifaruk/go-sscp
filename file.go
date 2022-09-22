@@ -72,7 +72,7 @@ func (self *PLCConnection) InitiateDataReceive(filename string) (*FileInfo, erro
 
 	return &FileInfo{
 		Size: binary.BigEndian.Uint32(res[0:4]),
-		Time: fromDateTime(binary.BigEndian.Uint64(res[4:12])),
+		Time: FromDateTime(binary.BigEndian.Uint64(res[4:12])),
 		CRC:  binary.BigEndian.Uint16(res[12:14]),
 	}, err
 }
