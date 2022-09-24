@@ -6,7 +6,7 @@ SSCP protocol implmentation for Go.
 
 This implementation heavily depends on the specification presented in the doc folder of the project root.
 SSCP protocol is simply a protocol for communicating with PLCs. Now, it is possible to read/write variables
-with golang.
+with go language.
 
 ## Implementation
 
