@@ -23,7 +23,7 @@ if you need a feature not implemented.
 | LargeBinaryRecv         | ❌           | ❌       |
 | GetPLCStatistics        | ❌           | ❌       |
 | GetTaskStatistics       | ✅           | ✅       |
-| GetChannelStatistics    | ❌           | ❌       |
+| GetChannelStatistics    | ✅           | ✅       |
 | ReadVariablesDirectly   | ✅           | ✅       |
 | WriteVariablesDirectly  | ✅           | ✅       |
 | ReadVariablesFileMode   | ❌           | ❌       |

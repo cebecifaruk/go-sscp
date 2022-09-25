@@ -84,13 +84,13 @@ type Endpoint struct {
 }
 
 type ChannelStatistics struct {
-	Version      uint8
-	SentPackets  uint32
-	RecvPackets  uint32
-	WrongPackets uint32
-	SentBytes    uint32
-	RecvBytes    uint32
-	Endpoints    []Endpoint
+	StatisticsVersion uint8
+	SentPackets       uint32
+	RecvPackets       uint32
+	WrongPackets      uint32
+	SentBytes         uint32
+	RecvBytes         uint32
+	Endpoints         []Endpoint
 }
 
 type TaskStatistics struct {
@@ -159,8 +159,8 @@ func (self *PLCConnection) GetChannelStatistics(channelName string) (*ChannelSta
 
 	var endpoints []Endpoint
 
-	for i := uint32(0); i < binary.BigEndian.Uint32(res[21:21+2]); i++ {
-		offset := 22 + 12*i
+	for i := uint16(0); i < binary.BigEndian.Uint16(res[21:]); i++ {
+		offset := 23 + 12*i
 		endpoints = append(endpoints, Endpoint{
 			AvarageCycleTime: binary.BigEndian.Uint32(res[offset+0 : offset+4]),
 			MaximalCycleTime: binary.BigEndian.Uint32(res[offset+4 : offset+8]),
@@ -169,12 +169,12 @@ func (self *PLCConnection) GetChannelStatistics(channelName string) (*ChannelSta
 	}
 
 	return &ChannelStatistics{
-		Version:      res[0],
-		SentPackets:  binary.BigEndian.Uint32(res[1 : 1+4]),
-		RecvPackets:  binary.BigEndian.Uint32(res[5 : 5+4]),
-		WrongPackets: binary.BigEndian.Uint32(res[9 : 9+4]),
-		SentBytes:    binary.BigEndian.Uint32(res[13 : 13+4]),
-		RecvBytes:    binary.BigEndian.Uint32(res[17 : 17+4]),
-		Endpoints:    endpoints,
+		StatisticsVersion: res[0],
+		SentPackets:       binary.BigEndian.Uint32(res[1:]),
+		RecvPackets:       binary.BigEndian.Uint32(res[5:]),
+		WrongPackets:      binary.BigEndian.Uint32(res[9:]),
+		SentBytes:         binary.BigEndian.Uint32(res[13:]),
+		RecvBytes:         binary.BigEndian.Uint32(res[17:]),
+		Endpoints:         endpoints,
 	}, nil
 }
