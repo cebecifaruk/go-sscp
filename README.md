@@ -28,8 +28,8 @@ if you need a feature not implemented.
 | WriteVariablesDirectly  | ✅           | ✅       |
 | ReadVariablesFileMode   | ❌           | ❌       |
 | WriteVariablesFileMode  | ❌           | ❌       |
-| TimeSetup               | ❌           | ❌       |
-| TimeSetupExtended       | ❌           | ❌       |
+| TimeSetup               | ✅           | ❌       |
+| TimeSetupExtended       | ✅           | ❌       |
 
 
 
