@@ -107,13 +107,122 @@ type TaskStatistics struct {
 
 // This functionality defined on the section 5.7.1 of the specification
 func (self *PLCConnection) GetPLCStatistics() (*PLCStatistics, error) {
-	_, err := self.makeRequest(0x0300, []byte{})
+	res, err := self.makeRequest(0x0300, []byte{})
 
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil
+	offset := 0
+
+	result := PLCStatistics{
+		StatisticsVersion: res[offset],
+	}
+
+	offset += 1
+
+	for offset < len(res) {
+		blockType := res[offset]
+		offset += 1
+		blockVersion := res[offset]
+		offset += 1
+		blockLength := binary.BigEndian.Uint16(res[offset:])
+		offset += 2
+
+		switch blockType {
+		case 0:
+			if blockVersion != 1 {
+				return nil, fmt.Errorf("Invalid block version %d for block type 0", blockVersion)
+			}
+			if blockLength != 0x001C {
+				return nil, fmt.Errorf("Invalid block length %d for block type 0", blockVersion)
+			}
+			result.NormalTaskCount = res[offset]
+			offset += 1
+			result.MaxTaskId = res[offset]
+			offset += 1
+			result.EvaluatorState = res[offset]
+			offset += 1
+			result.RunMode = res[offset]
+			offset += 1
+			result.UpTime = binary.BigEndian.Uint64(res[offset:])
+			offset += 8
+			result.RunningTasks = binary.BigEndian.Uint64(res[offset:])
+			offset += 8
+			result.TasksWithException = binary.BigEndian.Uint64(res[offset:])
+			offset += 8
+		case 1:
+			if blockVersion != 1 {
+				return nil, fmt.Errorf("Invalid block version %d for block type 1", blockVersion)
+			}
+			if blockLength != 0x0010 {
+				return nil, fmt.Errorf("Invalid block length %d for block type 1", blockVersion)
+			}
+			result.TotalHeap = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.FreeHeapBeforeLoad = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.FreeHeap = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.TotalCodeSpace = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.FreeCodeSpace = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.RetainSize = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.AllocatorTotalSize = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.AllocatorFreeSpace = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+		case 2:
+			if blockVersion != 1 {
+				return nil, fmt.Errorf("Invalid block version %d for block type 2", blockVersion)
+			}
+			if blockLength != 0x0006 {
+				return nil, fmt.Errorf("Invalid block length %d for block type 2", blockVersion)
+			}
+			result.VMEXSection = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.RTCMSection = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+			result.OtherSections = binary.BigEndian.Uint16(res[offset:])
+			offset += 2
+		case 3:
+			if blockVersion != 1 {
+				return nil, fmt.Errorf("Invalid block version %d for block type 3", blockVersion)
+			}
+			if blockLength != 0x0015 {
+				return nil, fmt.Errorf("Invalid block length %d for block type 3", blockVersion)
+			}
+			result.ClientStatus = res[offset]
+			offset += 1
+			result.RecordsSaved = binary.BigEndian.Uint32(res[offset:])
+			offset += 4
+			result.LastSaveTime = binary.BigEndian.Uint64(res[offset:])
+			offset += 8
+			result.LastRequestTime = binary.BigEndian.Uint64(res[offset:])
+			offset += 8
+		case 4:
+			if blockVersion != 1 {
+				return nil, fmt.Errorf("Invalid block version %d for block type 4", blockVersion)
+			}
+			if blockLength != 0x0017 {
+				return nil, fmt.Errorf("Invalid block length %d for block type 4", blockVersion)
+			}
+			result.ProxyStatus = res[offset]
+			offset += 1
+			result.ProxyId = res[offset : offset+20]
+			offset += 20
+			result.SlotsTotal = res[offset]
+			offset += 1
+			result.SlotsFree = res[offset]
+			offset += 1
+		default:
+			return nil, fmt.Errorf("Invalid block type %d", blockType)
+		}
+	}
+
+	return &result, nil
 }
 
 // This functionality defined on the section 5.7.2 of the specification

@@ -21,7 +21,7 @@ if you need a feature not implemented.
 | Logout                  | ✅           | ✅       |
 | LargeBinarySend         | ❌           | ❌       |
 | LargeBinaryRecv         | ❌           | ❌       |
-| GetPLCStatistics        | ❌           | ❌       |
+| GetPLCStatistics        | ✅           | ✅       |
 | GetTaskStatistics       | ✅           | ✅       |
 | GetChannelStatistics    | ✅           | ✅       |
 | ReadVariablesDirectly   | ✅           | ✅       |
