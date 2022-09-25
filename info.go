@@ -1,8 +1,10 @@
 package sscp
 
 import (
+	"crypto/md5"
 	"encoding/binary"
 	"fmt"
+	"unicode/utf16"
 )
 
 // The device identifications are described in section 6.2 of the specification
@@ -38,105 +40,90 @@ var platforms map[uint32]string = map[uint32]string{
 
 // This type represents PLC Information
 type PLCInfo struct {
-	SerialNumber   []byte
-	Endianness     byte
-	Platform       string
-	RuntimeVersion []byte
-	Name           string
-	SlaveAddr      uint8
-	TCPPort        uint16
-	SSLTCPPort     uint16
+	SizeOfConfigBlock uint16
+	SerialNumber      []byte
+	Endianness        byte
+	PlatformId        uint32
+	RuntimeVersion    []byte
+	Name              *string
+	SlaveAddr         *uint8
+	TCPPort           *uint16
+	SSLTCPPort        *uint16
 }
 
-func (self *PLCInfo) parseInfoTags(buffer []byte) error {
-	if buffer[0] != 0x3E {
-		return fmt.Errorf("Invalid Open Tag")
+func (self PLCInfo) GetPlatformString() string {
+	str, ok := platforms[self.PlatformId]
+	if !ok {
+		return ""
 	}
-
-	if buffer[len(buffer)-1] != 0x3F {
-		return fmt.Errorf("Invalid Close Tag")
-	}
-
-	tagsBuffer := buffer[1 : len(buffer)-1]
-
-	for i := 0; i < len(tagsBuffer); i++ {
-		tagId := tagsBuffer[i]
-		i += 1
-
-		switch tagId {
-		case 0x01:
-			for {
-				i += 2
-			}
-		case 0x02:
-			self.SlaveAddr = tagsBuffer[i]
-			i += 1
-		case 0x04:
-			self.TCPPort = binary.BigEndian.Uint16(tagsBuffer[i : i+2])
-			i += 2
-		case 0x05:
-			self.SSLTCPPort = binary.BigEndian.Uint16(tagsBuffer[i : i+2])
-			i += 2
-		default:
-			return fmt.Errorf("Invalid Tag Id")
-		}
-	}
-
-	return nil
+	return str
 }
 
 // This function simply gets basic information of the PLC.
 // (This functionality defined on the section 5.4.1 of the specification)
-func (self *PLCConnection) GetBasicInfo(serialnumber string, username string, password string) (*PLCInfo, error) {
-	_sn := []byte(serialnumber)
-	_username := []byte(username)
-	_password := []byte(password)
+func (self *PLCConnection) GetBasicInfo(_serialnumber string, _username string, _password string) (*PLCInfo, error) {
+	serialnumber := []byte(_serialnumber)
+	username := []byte(_username)
+	password := []byte(_password)
 
-	len_sn := byte(len(_sn))
-	len_username := byte(len(_username))
-	len_password := byte(len(_password))
+	serialnumber_len := byte(len(serialnumber))
+	username_len := byte(len(username))
+	password_len := byte(len(password))
 
-	if len_sn > 255 {
+	if password_len > 0 {
+		h := md5.New()
+		h.Write([]byte(password))
+		password = h.Sum(nil)
+		password_len = byte(len(password))
+	}
+
+	if serialnumber_len > 255 {
 		return nil, fmt.Errorf("Too long serialnumber")
 	}
 
-	if len_username > 255 {
+	if username_len > 255 {
 		return nil, fmt.Errorf("Too long username")
 	}
 
-	if len_password > 255 {
-		return nil, fmt.Errorf("Too long password")
-	}
+	req := make([]byte, 8+serialnumber_len+username_len+password_len)
 
-	req := make([]byte, 8+len_username+len_password+len_sn)
+	var offset uint16 = 0
 
-	req[0] = 1
+	// Version
+	req[offset] = 1
+	offset += 1
 
 	// Serial Number
 
-	req[1] = len_sn
-	if len(_sn) > 0 {
-		copy(req[2:], _sn)
+	req[offset] = serialnumber_len
+	offset += 1
+	if serialnumber_len > 0 {
+		copy(req[2:], serialnumber)
+		offset += uint16(serialnumber_len)
 	}
 
 	// Username
 
-	req[3+len_sn] = len_username
-	if len(_sn) > 0 {
-		copy(req[4+len_sn:], _username)
+	req[offset] = username_len
+	offset += 1
+	if username_len > 0 {
+		copy(req[offset:], username)
+		offset += uint16(username_len)
 	}
 
 	// Password
 
-	req[5+len_sn+len_username] = len_password
-	if len(_sn) > 0 {
-		copy(req[6+len_sn+len_username:], _password)
+	req[offset] = password_len
+	offset += 1
+	if password_len > 0 {
+		copy(req[offset:], password)
+		offset += uint16(password_len)
 	}
 
-	// req[7+len_sn+len_username+len_password] = 0x00
-	// req[8+len_sn+len_username+len_password] = 0x00
-	// req[9+len_sn+len_username+len_password] = 0x00
-	// req[10+len_sn+len_username+len_password] = 0x00
+	binary.BigEndian.PutUint16(req[offset:], 0x0000)
+	offset += 2
+	binary.BigEndian.PutUint16(req[offset:], 0x0000)
+	offset += 2
 
 	res, err := self.makeRequest(0x0000, req)
 
@@ -144,17 +131,70 @@ func (self *PLCConnection) GetBasicInfo(serialnumber string, username string, pa
 		return nil, err
 	}
 
-	serialNumberLength := res[2]
-	runtimeVersionLength := res[0]
+	info := PLCInfo{}
 
-	info := PLCInfo{
-		SerialNumber:   res[3 : 3+serialNumberLength],
-		Endianness:     res[4+serialNumberLength],
-		Platform:       platforms[binary.BigEndian.Uint32(res[5+serialNumberLength:9+serialNumberLength])],
-		RuntimeVersion: res[9+serialNumberLength : 9+serialNumberLength+runtimeVersionLength],
+	offset = 0
+	info.SizeOfConfigBlock = binary.BigEndian.Uint16(res[offset:])
+	offset += 2
+	serialNumberLength := res[offset]
+	offset += 1
+	info.SerialNumber = res[offset : byte(offset)+serialNumberLength]
+	offset += uint16(serialNumberLength)
+	info.Endianness = res[offset]
+	offset += 1
+	info.PlatformId = binary.BigEndian.Uint32(res[offset:])
+	offset += 4
+	runtimeVersionLength := res[offset]
+	offset += 1
+	info.RuntimeVersion = res[offset : offset+uint16(runtimeVersionLength)]
+	offset += uint16(runtimeVersionLength)
+
+	// Parse Tags
+
+	if res[offset] != 0x3E {
+		return nil, fmt.Errorf("Invalid Open Tag")
 	}
+	offset += 1
 
-	info.parseInfoTags(res[9+serialNumberLength:])
+Loop:
+	for {
+		if offset >= uint16(len(res)) {
+			return nil, fmt.Errorf("Expected Close Tag")
+		}
+
+		tagId := res[offset]
+		offset += 1
+
+		switch tagId {
+		case 0x01:
+			nameBuffer := []uint16{}
+			for {
+				c := binary.BigEndian.Uint16(res[offset:])
+				offset += 2
+				if c == 0x0000 {
+					break
+				}
+				nameBuffer = append(nameBuffer, c)
+			}
+			name := string(utf16.Decode(nameBuffer))
+			info.Name = &name
+		case 0x02:
+			info.SlaveAddr = &res[offset]
+			offset += 1
+		case 0x04:
+			tcpPort := binary.BigEndian.Uint16(res[offset:])
+			info.TCPPort = &tcpPort
+			offset += 2
+		case 0x05:
+			sslTcpPort := binary.BigEndian.Uint16(res[offset:])
+			info.SSLTCPPort = &sslTcpPort
+			offset += 2
+		case 0x3F:
+			break Loop
+		default:
+			return nil, fmt.Errorf("Invalid Tag Id")
+		}
+	}
 
 	return &info, nil
 }

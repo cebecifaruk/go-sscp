@@ -16,7 +16,7 @@ if you need a feature not implemented.
 
 | Feature                 | Implemented  | Tested  |
 |-------------------------|--------------|---------|
-| GetBasicInfo            | ❌           | ❌       |
+| GetBasicInfo            | ✅           | ✅       |
 | Login                   | ✅           | ✅       |
 | Logout                  | ✅           | ✅       |
 | LargeBinarySend         | ❌           | ❌       |

@@ -102,25 +102,6 @@ var errorCodeTable map[uint32]string = map[uint32]string{
 }
 
 func (self *PLCConnection) sendFrame(frame Frame) error {
-
-	// Exception for GetBasicInfo
-	if frame.FunctionId == 0x0000 {
-		packet := make([]byte, 4+len(frame.Payload))
-
-		binary.BigEndian.PutUint16(packet[0:], 0x3FFF&frame.FunctionId)
-		binary.BigEndian.PutUint16(packet[2:], uint16(len(frame.Payload)))
-
-		copy(packet[4:], frame.Payload)
-
-		err := self.send(packet)
-
-		if err != nil {
-			return err
-		}
-
-		return nil
-	}
-
 	packet := make([]byte, 5+len(frame.Payload))
 
 	packet[0] = byte(frame.Addr)
@@ -129,6 +110,23 @@ func (self *PLCConnection) sendFrame(frame Frame) error {
 	binary.BigEndian.PutUint16(packet[3:], uint16(len(frame.Payload)))
 
 	copy(packet[5:], frame.Payload)
+
+	err := self.send(packet)
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (self *PLCConnection) sendNonAddrFrame(frame Frame) error {
+	packet := make([]byte, 4+len(frame.Payload))
+
+	binary.BigEndian.PutUint16(packet[0:], 0x3FFF&frame.FunctionId)
+	binary.BigEndian.PutUint16(packet[2:], uint16(len(frame.Payload)))
+
+	copy(packet[4:], frame.Payload)
 
 	err := self.send(packet)
 
@@ -154,6 +152,28 @@ func (self *PLCConnection) recvFrame() (*Frame, error) {
 
 	// Read Payload
 	frame.Payload, err = self.recv(uint(binary.BigEndian.Uint16(buf[3:])))
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &frame, nil
+}
+
+func (self *PLCConnection) recvNonAddrFrame() (*Frame, error) {
+	frame := Frame{}
+
+	// Read header
+	buf, err := self.recv(4)
+
+	if err != nil {
+		return nil, err
+	}
+
+	frame.FunctionId = binary.BigEndian.Uint16(buf[0:])
+
+	// Read Payload
+	frame.Payload, err = self.recv(uint(binary.BigEndian.Uint16(buf[2:])))
 
 	if err != nil {
 		return nil, err
@@ -203,22 +223,39 @@ func (self *PLCConnection) makeRequest(functionId uint16, reqPayload []byte) ([]
 		Payload:    reqPayload,
 	}
 
-	err := self.sendFrame(reqFrame)
-
-	if err != nil {
-		return nil, err
+	if functionId == 0x0000 {
+		err := self.sendNonAddrFrame(reqFrame)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		err := self.sendFrame(reqFrame)
+		if err != nil {
+			return nil, err
+		}
 	}
+
+	var resFrame *Frame
+	var err error
 
 	if functionId == 0x0101 {
 		return nil, nil
-	}
+	} else if functionId == 0x0000 {
+		resFrame, err = self.recvNonAddrFrame()
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		resFrame, err = self.recvFrame()
+		if err != nil {
+			return nil, err
+		}
 
-	resFrame, err := self.recvFrame()
+		// Check address
 
-	// Check address
-
-	if resFrame.Addr != byte(self.addr) {
-		return nil, fmt.Errorf("Invalid device addrss recieved")
+		if resFrame.Addr != byte(self.addr) {
+			return nil, fmt.Errorf("Invalid device addrss recieved")
+		}
 	}
 
 	// Check Errors and Function Code
@@ -255,4 +292,11 @@ func (self *PLCConnection) makeRequest(functionId uint16, reqPayload []byte) ([]
 	}
 
 	return resFrame.Payload, nil
+}
+
+func handleRuntimeError() error {
+	if r := recover(); r != nil {
+		return fmt.Errorf("Rutime Error %+v", r)
+	}
+	return nil
 }
