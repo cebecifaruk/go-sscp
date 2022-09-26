@@ -19,51 +19,56 @@ func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable, taskId *uint8
 		return fmt.Errorf("Too many variables")
 	}
 
-	var payload []byte
+	var req []byte
 
 	if taskId != nil {
-		payload = make([]byte, 2+12*len(vars))
+		req = make([]byte, 2+12*len(vars))
 	} else {
-		payload = make([]byte, 1+12*len(vars))
+		req = make([]byte, 1+12*len(vars))
 	}
 
 	offset := 0
-	payload[offset] = 0x80
+	req[offset] = 0x80
 
 	if taskId != nil {
-		payload[offset] |= 0x20
+		req[offset] |= 0x20
 	}
 
 	offset += 1
 
 	if taskId != nil {
-		payload[offset] = *taskId
+		req[offset] = *taskId
 		offset += 1
 	}
 
+	var totalRequestedSize uint32 = 0
+
 	for _, v := range vars {
-		binary.BigEndian.PutUint32(payload[offset:], v.Uid)
+		binary.BigEndian.PutUint32(req[offset:], v.Uid)
 		offset += 4
-		binary.BigEndian.PutUint32(payload[offset:], v.Offset)
+		binary.BigEndian.PutUint32(req[offset:], v.Offset)
 		offset += 4
-		binary.BigEndian.PutUint32(payload[offset:], v.Length)
+		binary.BigEndian.PutUint32(req[offset:], v.Length)
 		offset += 4
+		totalRequestedSize += v.Length
 	}
 
-	res, err := self.makeRequest(0x0500, payload)
+	res, err := self.makeRequest(0x0500, req)
 
 	if err != nil {
 		return err
 	}
 
+	if len(res) != int(totalRequestedSize) {
+		return fmt.Errorf("Invalid response body %+v %+v", req, res)
+	}
+
 	offset = 0
 
 	for _, v := range vars {
-		if offset < len(res) {
-			len := int(v.Length)
-			v.Value = res[offset : offset+len]
-			offset += len
-		}
+		len := int(v.Length)
+		v.Value = res[offset : offset+len]
+		offset += len
 	}
 
 	return nil
