@@ -43,7 +43,7 @@ func TestReadVariablesInDirectMode(t *testing.T) {
 		Length: 0x00000004,
 	}
 
-	err := conn.ReadVariablesDirectly([]*sscp.Variable{&v1, &v2, &v3})
+	err := conn.ReadVariablesDirectly([]*sscp.Variable{&v1, &v2, &v3}, nil)
 
 	if err != nil {
 		t.Error(err)

@@ -48,7 +48,7 @@ func main() {
 		},
 	}
 
-	fmt.Println(c.ReadVariablesDirectly(vars))
+	fmt.Println(c.ReadVariablesDirectly(vars, nil))
 
 	for _, v := range vars {
 		var value float32

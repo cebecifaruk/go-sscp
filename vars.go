@@ -14,18 +14,40 @@ type Variable struct {
 
 // This functionality defined on the section 5.8.1.1 of the specification
 // It simply takes a list of variables and mutates their values.
-func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable) error {
+func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable, taskId *uint8) error {
 	if len(vars) > 64 {
 		return fmt.Errorf("Too many variables")
 	}
 
-	payload := make([]byte, 1+12*len(vars))
-	payload[0] = 0x80
+	var payload []byte
 
-	for i, v := range vars {
-		binary.BigEndian.PutUint32(payload[1+12*i:], v.Uid)
-		binary.BigEndian.PutUint32(payload[5+12*i:], v.Offset)
-		binary.BigEndian.PutUint32(payload[9+12*i:], v.Length)
+	if taskId != nil {
+		payload = make([]byte, 2+12*len(vars))
+	} else {
+		payload = make([]byte, 1+12*len(vars))
+	}
+
+	offset := 0
+	payload[offset] = 0x80
+
+	if taskId != nil {
+		payload[offset] |= 0x20
+	}
+
+	offset += 1
+
+	if taskId != nil {
+		payload[offset] = *taskId
+		offset += 1
+	}
+
+	for _, v := range vars {
+		binary.BigEndian.PutUint32(payload[offset:], v.Uid)
+		offset += 4
+		binary.BigEndian.PutUint32(payload[offset:], v.Offset)
+		offset += 4
+		binary.BigEndian.PutUint32(payload[offset:], v.Length)
+		offset += 4
 	}
 
 	res, err := self.makeRequest(0x0500, payload)
@@ -34,11 +56,14 @@ func (self *PLCConnection) ReadVariablesDirectly(vars []*Variable) error {
 		return err
 	}
 
-	var ptr uint32 = 0
+	offset = 0
 
 	for _, v := range vars {
-		v.Value = res[ptr : ptr+v.Length]
-		ptr += v.Length
+		if offset < len(res) {
+			len := int(v.Length)
+			v.Value = res[offset : offset+len]
+			offset += len
+		}
 	}
 
 	return nil
