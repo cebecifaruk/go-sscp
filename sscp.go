@@ -50,6 +50,10 @@ func NewPLCConnectionFrom(conn net.Conn, addr uint8, reconnect bool) PLCConnecti
 	}
 }
 
+func (self *PLCConnection) Close() error {
+	return self.conn.Close()
+}
+
 // Error Code Table
 var errorCodeTable map[uint32]string = map[uint32]string{
 	0x0000: "No Error",
