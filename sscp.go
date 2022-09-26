@@ -278,17 +278,16 @@ func (self *PLCConnection) makeRequest(functionId uint16, reqPayload []byte) ([]
 
 	// Check is an error response
 
-	if (reqFrame.FunctionId & 0xC000) == 0xC0 {
-		errCode := binary.BigEndian.Uint32(reqFrame.Payload)
+	if (resFrame.FunctionId & 0xC000) == 0xC0 {
+		errCode := binary.BigEndian.Uint32(resFrame.Payload)
 
 		errString, ok := errorCodeTable[errCode]
 
 		if ok {
-			return resFrame.Payload, fmt.Errorf(errString)
-			// TODO: Optional data for 0x0108, 0x0103, 0x010A, 0x0112, 0x0115, 0x0113
+			return nil, fmt.Errorf(errString+" with payload %+v", resFrame.Payload)
 		}
 
-		return resFrame.Payload, fmt.Errorf("Error response")
+		return nil, fmt.Errorf("Error response"+" with payload %+v", resFrame.Payload)
 	}
 
 	return resFrame.Payload, nil
